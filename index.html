@@ -221,14 +221,18 @@ let drawScheduled = false;
 let syncScheduled = false;
 let syncResetZoom = false;
 let gridCacheDirty = true;
+let thumbCacheDirty = true;
 let gridRebuildTimer = null;
-let thumbModeActiveLoads = 0;
-let drawQueuedFromImage = false;
 
 const gridCacheCanvas = document.createElement('canvas');
 const gridCacheCtx = gridCacheCanvas.getContext('2d', { alpha: false });
 gridCacheCtx.imageSmoothingEnabled = true;
 gridCacheCtx.imageSmoothingQuality = 'low';
+
+const thumbCacheCanvas = document.createElement('canvas');
+const thumbCacheCtx = thumbCacheCanvas.getContext('2d', { alpha: false });
+thumbCacheCtx.imageSmoothingEnabled = true;
+thumbCacheCtx.imageSmoothingQuality = 'low';
 
 function isMobile(){ return W < 768; }
 function getCssPixel(varName, fallback){
@@ -286,7 +290,7 @@ function buildScales(){
   const pad = activeCat === 'all' ? 30 : 10;
   baseScaleX = d3.scaleLinear().domain([0 - pad, 255 + pad]).range([margin.left, W - margin.right]);
   baseScaleY = d3.scaleLinear().domain([0 - pad, 255 + pad]).range([H - margin.bottom, margin.top]);
-  markGridCacheDirty();
+  markStaticCachesDirty();
 }
 function scheduleDraw(){
   if (drawScheduled) return;
@@ -316,15 +320,17 @@ function scheduleResizeDebounced(resetZoom = false){
   scheduleResizeDebounced.t = setTimeout(() => scheduleSync(resetZoom), 80);
 }
 
-function markGridCacheDirty(){
+function markStaticCachesDirty(){
   gridCacheDirty = true;
-  if (gridMode) scheduleDraw();
+  thumbCacheDirty = true;
+  if (gridMode || thumbMode) scheduleDraw();
 }
 function scheduleGridCacheRebuild(){
   clearTimeout(gridRebuildTimer);
   gridRebuildTimer = setTimeout(() => {
-    if (gridMode) {
-      gridCacheDirty = true;
+    if (gridMode || thumbMode) {
+      if (gridMode) gridCacheDirty = true;
+      if (thumbMode) thumbCacheDirty = true;
       scheduleDraw();
     }
   }, 320);
@@ -336,17 +342,8 @@ function loadImg(fn){
   img.decoding = 'async';
   img.src = 'images/' + fn;
   img.onload = () => {
-    if (gridMode) scheduleGridCacheRebuild();
-    if (thumbMode) {
-      thumbModeActiveLoads++;
-      if (!drawQueuedFromImage) {
-        drawQueuedFromImage = true;
-        requestAnimationFrame(() => {
-          drawQueuedFromImage = false;
-          thumbModeActiveLoads = 0;
-          scheduleDraw();
-        });
-      }
+    if (gridMode || thumbMode) {
+      scheduleGridCacheRebuild();
     } else {
       scheduleDraw();
     }
@@ -357,7 +354,7 @@ function loadImg(fn){
 }
 function warmImageCache(){
   const data = getFiltered();
-  const budget = gridMode ? (isMobile() ? 96 : 180) : (thumbMode ? (isMobile() ? 160 : 260) : (isMobile() ? 90 : 160));
+  const budget = (gridMode || thumbMode) ? data.length : (isMobile() ? 90 : 160);
   for (let i = 0; i < Math.min(data.length, budget); i++) loadImg(data[i].filename);
 }
 
@@ -384,6 +381,28 @@ function getSortedGroupData(group){
   const base = allData.filter(d => d.group === group && (activeCat === 'all' || d.category === activeCat));
   const sortKeys = getGridSortKeys();
   base.sort((a, b) => {
+    const pd = a[sortKeys.primary] - b[sortKeys.primary];
+    if (Math.abs(pd) > 0.0001) return pd;
+    return a[sortKeys.secondary] - b[sortKeys.secondary];
+  });
+  sortedCache.set(cacheKey, base);
+  return base;
+}
+function getSortedThumbnailData(){
+  const groupsKey = Array.from(activeGroups).sort().join('|');
+  const cacheKey = `thumb|${currentAxes}|${activeCat}|${groupsKey}`;
+  if (sortedCache.has(cacheKey)) return sortedCache.get(cacheKey);
+  const base = getFiltered().slice();
+  const sortKeys = getGridSortKeys();
+  const groupOrder = { AI: 0, Human: 1 };
+  const catOrder = { abstract: 0, cityscape: 1, landscape: 2, portrait: 3 };
+  base.sort((a, b) => {
+    const gd = (groupOrder[a.group] ?? 9) - (groupOrder[b.group] ?? 9);
+    if (gd !== 0) return gd;
+    if (activeCat === 'all') {
+      const cd = (catOrder[a.category] ?? 9) - (catOrder[b.category] ?? 9);
+      if (cd !== 0) return cd;
+    }
     const pd = a[sortKeys.primary] - b[sortKeys.primary];
     if (Math.abs(pd) > 0.0001) return pd;
     return a[sortKeys.secondary] - b[sortKeys.secondary];
@@ -482,43 +501,33 @@ function drawThumbSquare(targetCtx, img, x, y, size, borderColor, alpha){
   targetCtx.restore();
 }
 
-function drawThumbnailMode(data, keys, zx, zy, k){
-  const mob = isMobile();
-  const baseSize = mob ? 10 : 11;
-  const growth = mob ? 2.8 : 4.0;
-  const photoSize = Math.max(baseSize, Math.min(mob ? 40 : 56, baseSize + (k - 1) * growth));
-  const alpha = Math.min(1, 0.78 + Math.max(0, k - 1) * 0.08);
+function rebuildThumbnailCache(){
+  const gTop = layoutMetrics.gridTop;
+  const gRight = layoutMetrics.gridRight;
+  const gBottom = layoutMetrics.gridBottom;
+  const gLeft = layoutMetrics.gridLeft;
+  const plotW = W - gLeft - gRight;
+  const plotH = H - gTop - gBottom;
+  if (plotH <= 60 || plotW <= 60) return;
 
-  let step;
-  let drawLimit;
-  if (mob) {
-    if (k < 1.15) { step = 4; drawLimit = 180; }
-    else if (k < 1.45) { step = 3; drawLimit = 240; }
-    else if (k < 2.0) { step = 2; drawLimit = 320; }
-    else if (k < 3.0) { step = 2; drawLimit = 420; }
-    else { step = 1; drawLimit = 520; }
-  } else {
-    if (k < 1.2) { step = 3; drawLimit = 280; }
-    else if (k < 2.0) { step = 2; drawLimit = 420; }
-    else { step = 1; drawLimit = 620; }
-  }
+  thumbCacheCanvas.width = Math.round(W * DPR);
+  thumbCacheCanvas.height = Math.round(H * DPR);
+  thumbCacheCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  thumbCacheCtx.imageSmoothingEnabled = true;
+  thumbCacheCtx.imageSmoothingQuality = 'low';
+  thumbCacheCtx.clearRect(0, 0, W, H);
+  thumbCacheCtx.fillStyle = '#000';
+  thumbCacheCtx.fillRect(0, 0, W, H);
 
-  let drawn = 0;
-  for (let i = 0; i < data.length; i += step) {
-    if (drawn >= drawLimit) break;
-    const d = data[i];
-    const x = zx(d[keys.x]);
-    const y = zy(d[keys.y]);
-    if (x < margin.left - photoSize || x > W - margin.right + photoSize || y < margin.top - photoSize || y > H - margin.bottom + photoSize) continue;
-    const img = loadImg(d.filename);
-    const borderColor = d.group === 'AI' ? 'rgba(35,198,211,0.70)' : 'rgba(255,159,67,0.70)';
-    if (img.complete && img.naturalWidth) {
-      drawThumbSquare(ctx, img, x, y, photoSize, borderColor, alpha);
-    } else {
-      drawPlaceholderSquare(ctx, x, y, photoSize, borderColor, 0.18);
-    }
-    drawn++;
-  }
+  drawGridBlock(thumbCacheCtx, getSortedThumbnailData(), gLeft, gTop, plotW, plotH);
+  thumbCacheDirty = false;
+}
+function drawThumbnailMode(){
+  const data = getFiltered();
+  if (data.length === 0) return;
+  if (thumbCacheDirty) rebuildThumbnailCache();
+  if (!thumbCacheCanvas.width || !thumbCacheCanvas.height) return;
+  ctx.drawImage(thumbCacheCanvas, 0, 0, W, H);
 }
 function getGridSortKeys(){
   if (currentAxes === 'bs') return { primary: 'brightness_median', secondary: 'saturation_median', label: 'Brightness / Saturation' };
@@ -612,6 +621,7 @@ function drawGridMode(){
   const data = getFiltered();
   if (data.length === 0) return;
   if (gridCacheDirty) rebuildGridCache();
+  if (!gridCacheCanvas.width || !gridCacheCanvas.height) return;
   ctx.drawImage(gridCacheCanvas, 0, 0, W, H);
 }
 
@@ -695,6 +705,12 @@ function draw(){
     return;
   }
 
+  if (thumbMode) {
+    legendEl.classList.remove('visible');
+    drawThumbnailMode();
+    return;
+  }
+
   ctx.save();
   ctx.beginPath();
   ctx.rect(margin.left, margin.top, W - margin.left - margin.right, H - margin.top - margin.bottom);
@@ -720,33 +736,30 @@ function draw(){
     }
   });
 
-  if (thumbMode) {
-    drawThumbnailMode(data, keys, zx, zy, k);
-  } else {
-    const groupAlpha = lerp(0.84, 0.22, catMix) * lerp(1, 0.2, photoMix);
-    const groupSize = Math.max(1.3, Math.min(3.2, 1.2 * Math.min(k, 3)));
-    drawGroupDots(data, keys, zx, zy, groupAlpha, groupSize);
-    const catAlpha = Math.max(0, 0.16 + 0.78 * catMix) * lerp(1, 0.34, photoMix);
-    const catSize = Math.max(1.3, 1.2 + 0.45 * Math.max(0, k - CAT_START));
-    drawCategoryDots(data, keys, zx, zy, catAlpha, catSize);
-    const photoAlpha = photoMix;
-    const photoSize = Math.max(22, Math.min(62, 18 + (k - PHOTO_START) * 6));
-    drawPhotos(data, keys, zx, zy, photoAlpha, photoSize);
-  }
+  const groupAlpha = lerp(0.84, 0.22, catMix) * lerp(1, 0.2, photoMix);
+  const groupSize = Math.max(1.3, Math.min(3.2, 1.2 * Math.min(k, 3)));
+  drawGroupDots(data, keys, zx, zy, groupAlpha, groupSize);
+  const catAlpha = Math.max(0, 0.16 + 0.78 * catMix) * lerp(1, 0.34, photoMix);
+  const catSize = Math.max(1.3, 1.2 + 0.45 * Math.max(0, k - CAT_START));
+  drawCategoryDots(data, keys, zx, zy, catAlpha, catSize);
+  const photoAlpha = photoMix;
+  const photoSize = Math.max(22, Math.min(62, 18 + (k - PHOTO_START) * 6));
+  drawPhotos(data, keys, zx, zy, photoAlpha, photoSize);
   ctx.restore();
   drawAxes(zx, zy, keys);
 }
 
-const zoom = d3.zoom().scaleExtent([1, 25]).filter(() => !gridMode);
+const zoom = d3.zoom().scaleExtent([1, 25]).filter(() => !gridMode && !thumbMode);
 function applyZoomBounds(){
   zoom
     .extent([[margin.left, margin.top], [W - margin.right, H - margin.bottom]])
     .translateExtent([[margin.left, margin.top], [W - margin.right, H - margin.bottom]])
     .on('zoom', (event) => { transform = event.transform; draw(); });
   d3.select(canvas).call(zoom);
-  canvas.style.cursor = gridMode ? 'default' : 'grab';
+  canvas.style.cursor = (gridMode || thumbMode) ? 'default' : 'grab';
 }
 canvas.addEventListener('dblclick', () => {
+  if (gridMode || thumbMode) return;
   transform = d3.zoomIdentity;
   d3.select(canvas).call(zoom.transform, d3.zoomIdentity);
 });
@@ -778,7 +791,7 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
     updateUIForMode();
     buildScales();
     applyZoomBounds();
-    markGridCacheDirty();
+    markStaticCachesDirty();
     warmImageCache();
 
     transform = d3.zoomIdentity;
@@ -800,7 +813,7 @@ document.querySelectorAll('.grp-btn').forEach(btn => {
     }
     clearSortedCache();
     warmImageCache();
-    markGridCacheDirty();
+    markStaticCachesDirty();
     draw();
   });
 });
@@ -812,8 +825,8 @@ document.querySelectorAll('.data-btn').forEach(btn => {
     currentAxes = btn.dataset.axes;
     transform = d3.zoomIdentity;
     clearSortedCache();
-    markGridCacheDirty();
-    if (gridMode) {
+    markStaticCachesDirty();
+    if (gridMode || thumbMode) {
       buildScales();
       applyZoomBounds();
       warmImageCache();
