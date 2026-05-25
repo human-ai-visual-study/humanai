@@ -388,28 +388,6 @@ function getSortedGroupData(group){
   sortedCache.set(cacheKey, base);
   return base;
 }
-function getSortedThumbnailData(){
-  const groupsKey = Array.from(activeGroups).sort().join('|');
-  const cacheKey = `thumb|${currentAxes}|${activeCat}|${groupsKey}`;
-  if (sortedCache.has(cacheKey)) return sortedCache.get(cacheKey);
-  const base = getFiltered().slice();
-  const sortKeys = getGridSortKeys();
-  const groupOrder = { AI: 0, Human: 1 };
-  const catOrder = { abstract: 0, cityscape: 1, landscape: 2, portrait: 3 };
-  base.sort((a, b) => {
-    const gd = (groupOrder[a.group] ?? 9) - (groupOrder[b.group] ?? 9);
-    if (gd !== 0) return gd;
-    if (activeCat === 'all') {
-      const cd = (catOrder[a.category] ?? 9) - (catOrder[b.category] ?? 9);
-      if (cd !== 0) return cd;
-    }
-    const pd = a[sortKeys.primary] - b[sortKeys.primary];
-    if (Math.abs(pd) > 0.0001) return pd;
-    return a[sortKeys.secondary] - b[sortKeys.secondary];
-  });
-  sortedCache.set(cacheKey, base);
-  return base;
-}
 function clearSortedCache(){ sortedCache.clear(); }
 
 function lerp(a,b,t){ return a + (b - a) * t; }
@@ -501,13 +479,37 @@ function drawThumbSquare(targetCtx, img, x, y, size, borderColor, alpha){
   targetCtx.restore();
 }
 
-function rebuildThumbnailCache(){
-  const gTop = layoutMetrics.gridTop;
-  const gRight = layoutMetrics.gridRight;
-  const gBottom = layoutMetrics.gridBottom;
-  const gLeft = layoutMetrics.gridLeft;
-  const plotW = W - gLeft - gRight;
-  const plotH = H - gTop - gBottom;
+function drawPlotGrid(targetCtx, zx, zy){
+  targetCtx.strokeStyle = 'rgba(255,255,255,0.03)';
+  targetCtx.lineWidth = 0.5;
+  zx.ticks(10).forEach(t => {
+    const x = zx(t);
+    if (x >= margin.left && x <= W - margin.right) {
+      targetCtx.beginPath();
+      targetCtx.moveTo(x, margin.top);
+      targetCtx.lineTo(x, H - margin.bottom);
+      targetCtx.stroke();
+    }
+  });
+  zy.ticks(10).forEach(t => {
+    const y = zy(t);
+    if (y >= margin.top && y <= H - margin.bottom) {
+      targetCtx.beginPath();
+      targetCtx.moveTo(margin.left, y);
+      targetCtx.lineTo(W - margin.right, y);
+      targetCtx.stroke();
+    }
+  });
+}
+function getThumbnailScatterSize(count){
+  const plotW = W - margin.left - margin.right;
+  const plotH = H - margin.top - margin.bottom;
+  const densitySize = Math.sqrt((plotW * plotH) / Math.max(1, count)) * (isMobile() ? 0.28 : 0.36);
+  return Math.max(isMobile() ? 5 : 7, Math.min(isMobile() ? 11 : 14, densitySize));
+}
+function rebuildThumbnailCache(data, keys, zx, zy){
+  const plotW = W - margin.left - margin.right;
+  const plotH = H - margin.top - margin.bottom;
   if (plotH <= 60 || plotW <= 60) return;
 
   thumbCacheCanvas.width = Math.round(W * DPR);
@@ -519,13 +521,29 @@ function rebuildThumbnailCache(){
   thumbCacheCtx.fillStyle = '#000';
   thumbCacheCtx.fillRect(0, 0, W, H);
 
-  drawGridBlock(thumbCacheCtx, getSortedThumbnailData(), gLeft, gTop, plotW, plotH);
+  thumbCacheCtx.save();
+  thumbCacheCtx.beginPath();
+  thumbCacheCtx.rect(margin.left, margin.top, plotW, plotH);
+  thumbCacheCtx.clip();
+  drawPlotGrid(thumbCacheCtx, zx, zy);
+
+  const size = getThumbnailScatterSize(data.length);
+  for (let i = 0; i < data.length; i++) {
+    const d = data[i];
+    const x = zx(d[keys.x]);
+    const y = zy(d[keys.y]);
+    if (x < margin.left - size || x > W - margin.right + size || y < margin.top - size || y > H - margin.bottom + size) continue;
+    const img = loadImg(d.filename);
+    const borderColor = d.group === 'AI' ? 'rgba(35,198,211,0.68)' : 'rgba(255,159,67,0.68)';
+    if (img.complete && img.naturalWidth) drawThumbSquare(thumbCacheCtx, img, x, y, size, borderColor, 0.88);
+    else drawPlaceholderSquare(thumbCacheCtx, x, y, size, borderColor, 0.16);
+  }
+  thumbCacheCtx.restore();
   thumbCacheDirty = false;
 }
-function drawThumbnailMode(){
-  const data = getFiltered();
+function drawThumbnailMode(data, keys, zx, zy){
   if (data.length === 0) return;
-  if (thumbCacheDirty) rebuildThumbnailCache();
+  if (thumbCacheDirty) rebuildThumbnailCache(data, keys, zx, zy);
   if (!thumbCacheCanvas.width || !thumbCacheCanvas.height) return;
   ctx.drawImage(thumbCacheCanvas, 0, 0, W, H);
 }
@@ -707,7 +725,8 @@ function draw(){
 
   if (thumbMode) {
     legendEl.classList.remove('visible');
-    drawThumbnailMode();
+    drawThumbnailMode(data, keys, baseScaleX, baseScaleY);
+    drawAxes(baseScaleX, baseScaleY, keys);
     return;
   }
 
@@ -715,26 +734,7 @@ function draw(){
   ctx.beginPath();
   ctx.rect(margin.left, margin.top, W - margin.left - margin.right, H - margin.top - margin.bottom);
   ctx.clip();
-  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-  ctx.lineWidth = 0.5;
-  zx.ticks(10).forEach(t => {
-    const x = zx(t);
-    if (x >= margin.left && x <= W - margin.right) {
-      ctx.beginPath();
-      ctx.moveTo(x, margin.top);
-      ctx.lineTo(x, H - margin.bottom);
-      ctx.stroke();
-    }
-  });
-  zy.ticks(10).forEach(t => {
-    const y = zy(t);
-    if (y >= margin.top && y <= H - margin.bottom) {
-      ctx.beginPath();
-      ctx.moveTo(margin.left, y);
-      ctx.lineTo(W - margin.right, y);
-      ctx.stroke();
-    }
-  });
+  drawPlotGrid(ctx, zx, zy);
 
   const groupAlpha = lerp(0.84, 0.22, catMix) * lerp(1, 0.2, photoMix);
   const groupSize = Math.max(1.3, Math.min(3.2, 1.2 * Math.min(k, 3)));
