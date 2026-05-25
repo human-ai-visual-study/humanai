@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AI vs Human</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  width:100%;height:100%;background:#000;overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;color:#fff;
+  -webkit-text-size-adjust:100%;
+  overscroll-behavior:none;
+  touch-action:none;
+}
+canvas{display:block;cursor:grab;touch-action:none}
+canvas:active{cursor:grabbing}
+
+:root{
+  --safe-top:max(10px, env(safe-area-inset-top));
+  --safe-left:max(12px, env(safe-area-inset-left));
+  --safe-right:max(12px, env(safe-area-inset-right));
+  --safe-bottom:max(10px, env(safe-area-inset-bottom));
+}
+
+.control-panel{
+  position:fixed;
+  top:var(--safe-top);
+  left:var(--safe-left);
+  right:var(--safe-right);
+  z-index:30;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  pointer-events:none;
+}
+
+.control-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  pointer-events:auto;
+}
+
+.pill{
+  display:flex;
+  gap:4px;
+  align-items:center;
+  flex-wrap:wrap;
+  max-width:100%;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:12px;
+  padding:4px;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+
+button{
+  appearance:none;
+  border:none;
+  background:transparent;
+  color:rgba(255,255,255,0.55);
+  font-family:inherit;
+  cursor:pointer;
+  border-radius:9px;
+  transition:all .2s ease;
+  white-space:nowrap;
+  touch-action:manipulation;
+}
+button:hover{color:rgba(255,255,255,0.82)}
+
+.data-btn,.mode-btn,.grp-btn{
+  font-size:12px;
+  letter-spacing:.35px;
+}
+.data-btn{padding:9px 14px}
+.mode-btn{padding:9px 14px}
+.grp-btn{padding:9px 16px}
+
+.data-btn.active,
+.mode-btn.active,
+.grp-btn.active{
+  background:rgba(255,255,255,0.12);
+  color:#fff;
+}
+
+.grp-btn.ai-on{
+  background:rgba(35,198,211,0.20);
+  color:#23c6d3;
+  box-shadow:inset 0 0 0 1px rgba(35,198,211,0.18);
+}
+.grp-btn.hu-on{
+  background:rgba(255,159,67,0.20);
+  color:#ff9f43;
+  box-shadow:inset 0 0 0 1px rgba(255,159,67,0.18);
+}
+.grp-btn.off{color:rgba(255,255,255,0.25)}
+
+#legend{
+  position:fixed;
+  top:calc(var(--safe-top) + 114px);
+  right:var(--safe-right);
+  background:rgba(0,0,0,0.86);
+  border:1px solid rgba(255,255,255,0.14);
+  border-radius:10px;
+  padding:12px 16px;
+  pointer-events:none;
+  z-index:10;
+  opacity:0;
+  transition:opacity .35s ease;
+  max-width:min(260px, calc(100vw - 24px));
+}
+#legend.visible{opacity:1}
+
+.legend-title{
+  font-size:14px;
+  font-weight:bold;
+  margin-bottom:6px;
+  color:rgba(255,255,255,0.92);
+}
+.legend-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  line-height:1.7;
+}
+.legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.legend-label{color:rgba(255,255,255,0.76)}
+
+#mini-note{
+  position:fixed;
+  left:var(--safe-left);
+  top:0;
+  bottom:auto;
+  color:rgba(255,255,255,0.44);
+  font-size:8px;
+  letter-spacing:.15px;
+  line-height:1;
+  pointer-events:none;
+  z-index:10;
+}
+
+#credit{
+  position:fixed;
+  left:var(--safe-left);
+  bottom:var(--safe-bottom);
+  height:14px;
+  min-width:120px;
+  color:transparent;
+  pointer-events:none;
+  z-index:10;
+}
+
+@media (max-width:768px){
+  .control-panel{gap:7px}
+  .control-row{gap:8px}
+  .pill{gap:2px;padding:4px}
+  .data-btn,.mode-btn,.grp-btn{
+    font-size:11px;
+    letter-spacing:.2px;
+    padding:8px 12px;
+  }
+
+  #legend{
+    top:auto;
+    right:auto;
+    left:var(--safe-left);
+    bottom:calc(var(--safe-bottom) + 72px);
+    padding:10px 12px;
+    max-width:min(280px, calc(100vw - 24px));
+  }
+
+  .legend-title{font-size:12px}
+  .legend-item{font-size:11px;line-height:1.5}
+  .legend-dot{width:7px;height:7px}
+
+  #mini-note{
+    font-size:7.5px;
+  }
+}
+</style>
+</head>
+<body>
+<canvas id="chart"></canvas>
+
+<div class="control-panel">
+  <div class="control-row">
+    <div class="pill" id="data-toggle">
+      <button class="data-btn active" data-axes="bs">Brightness / Saturation</button>
+      <button class="data-btn" data-axes="bh">Brightness / Hue</button>
+      <button class="data-btn" data-axes="sh">Saturation / Hue</button>
+    </div>
+  </div>
+
+  <div class="control-row">
+    <div class="pill" id="buttons">
+      <button class="mode-btn active" data-cat="all">Tümü</button>
+      <button class="mode-btn" data-cat="portrait">Portre</button>
+      <button class="mode-btn" data-cat="landscape">Manzara</button>
+      <button class="mode-btn" data-cat="abstract">Soyut</button>
+      <button class="mode-btn" data-cat="cityscape">Kentsel</button>
+    </div>
+
+    <div class="pill" id="group-toggle">
+      <button class="grp-btn ai-on" data-g="AI">AI</button>
+      <button class="grp-btn hu-on" data-g="Human">İnsan</button>
+    </div>
+  </div>
+</div>
+
+<div id="legend">
+  <div class="legend-title">Kategori</div>
+</div>
+
+<div id="mini-note">AI · Human</div>
+<div id="credit">&nbsp;</div>
+
+<script>
+const AI_COLOR = '#23c6d3';
+const HUMAN_COLOR = '#ff9f43';
+const catColors = {
+  portrait: '#E0A16D',
+  landscape: '#8CBF9F',
+  abstract: '#E7C98A',
+  cityscape: '#7D88B8'
+};
+const catLabels = {
+  portrait: 'Portre',
+  landscape: 'Manzara',
+  abstract: 'Soyut',
+  cityscape: 'Kentsel'
+};
+
+const legendEl = document.getElementById('legend');
+for (const [cat, color] of Object.entries(catColors)) {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<span class="legend-dot" style="background:${color}"></span><span class="legend-label">${catLabels[cat]}</span>`;
+  legendEl.appendChild(item);
+}
+const sep = document.createElement('div');
+sep.style.height = '6px';
+legendEl.appendChild(sep);
+[['AI', AI_COLOR], ['İnsan', HUMAN_COLOR]].forEach(([label, color]) => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<span class="legend-dot" style="background:${color}"></span><span class="legend-label">${label}</span>`;
+  legendEl.appendChild(item);
+});
+
+const miniNote = document.getElementById('mini-note');
+
+let allData = [];
+let activeGroups = new Set(['AI', 'Human']);
+let activeCat = 'all';
+let currentAxes = 'bs';
+let transform = d3.zoomIdentity;
+
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+}
+resize();
+
+const isMobile = () => W < 768;
+const getMargin = () => isMobile()
+  ? { top: 154, right: 16, bottom: 44, left: 44 }
+  : { top: 110, right: 38, bottom: 58, left: 68 };
+let margin = getMargin();
+
+const imgCache = {};
+function loadImg(fn) {
+  if (imgCache[fn]) return imgCache[fn];
+  const img = new Image();
+  img.src = 'images/' + fn;
+  img.onload = () => draw();
+  imgCache[fn] = img;
+  return img;
+}
+
+function parseGroup(fn) {
+  return fn.startsWith('ai_') ? 'AI' : fn.startsWith('human_') ? 'Human' : '?';
+}
+function parseCat(fn) {
+  const f = fn.toLowerCase();
+  if (f.includes('portrait') || f.includes('portre')) return 'portrait';
+  if (f.includes('landscape')) return 'landscape';
+  if (f.includes('abstract') || f.includes('absract')) return 'abstract';
+  if (f.includes('cityscape')) return 'cityscape';
+  return 'unknown';
+}
+
+function getKeys() {
+  if (currentAxes === 'bs') return { x: 'brightness_median', y: 'saturation_median', xL: 'Brightness', yL: 'Saturation' };
+  if (currentAxes === 'bh') return { x: 'brightness_median', y: 'hue_median', xL: 'Brightness', yL: 'Hue' };
+  return { x: 'saturation_median', y: 'hue_median', xL: 'Saturation', yL: 'Hue' };
+}
+
+let baseScaleX, baseScaleY;
+function buildScales() {
+  margin = getMargin();
+  const pad = activeCat === 'all' ? 30 : 10;
+  baseScaleX = d3.scaleLinear().domain([0 - pad, 255 + pad]).range([margin.left, W - margin.right]);
+  baseScaleY = d3.scaleLinear().domain([0 - pad, 255 + pad]).range([H - margin.bottom, margin.top]);
+}
+
+function getFiltered() {
+  return allData.filter(d => activeGroups.has(d.group) && (activeCat === 'all' || d.category === activeCat));
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function clamp01(v) {
+  return Math.max(0, Math.min(1, v));
+}
+
+function updateMiniNote(dataLength) {
+  miniNote.textContent = `${dataLength} görsel`;
+}
+
+function positionMiniNote() {
+  const y = H - (isMobile() ? 6 : 12);
+  const x = margin.left + (isMobile() ? 4 : 8);
+  miniNote.style.top = `${y}px`;
+  miniNote.style.left = `${x}px`;
+}
+
+function drawGroupDots(data, keys, zx, zy, alpha, size) {
+  if (alpha <= 0.01) return;
+  ctx.globalAlpha = alpha;
+  for (let i = 0; i < data.length; i++) {
+    const d = data[i];
+    const x = zx(d[keys.x]);
+    const y = zy(d[keys.y]);
+    if (x < margin.left - 6 || x > W - margin.right + 6 || y < margin.top - 6 || y > H - margin.bottom + 6) continue;
+    ctx.fillStyle = d.group === 'AI' ? AI_COLOR : HUMAN_COLOR;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawCategoryDots(data, keys, zx, zy, alpha, size) {
+  if (alpha <= 0.01) return;
+  ctx.globalAlpha = alpha;
+  for (let i = 0; i < data.length; i++) {
+    const d = data[i];
+    const x = zx(d[keys.x]);
+    const y = zy(d[keys.y]);
+    if (x < margin.left - 6 || x > W - margin.right + 6 || y < margin.top - 6 || y > H - margin.bottom + 6) continue;
+    ctx.fillStyle = catColors[d.category] || '#fff';
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawPhotos(data, keys, zx, zy, alpha, size) {
+  if (alpha <= 0.01) return;
+  let drawn = 0;
+  for (let i = 0; i < data.length; i++) {
+    const d = data[i];
+    const x = zx(d[keys.x]);
+    const y = zy(d[keys.y]);
+    if (x < margin.left - size || x > W - margin.right + size || y < margin.top - size || y > H - margin.bottom + size) continue;
+
+    const img = loadImg(d.filename);
+    if (img.complete && img.naturalWidth > 0 && drawn < 150) {
+      const aspect = img.naturalHeight / img.naturalWidth;
+      const iw = size;
+      const ih = size * aspect;
+      ctx.globalAlpha = alpha * 0.92;
+      ctx.drawImage(img, x - iw / 2, y - ih / 2, iw, ih);
+      ctx.strokeStyle = d.group === 'AI' ? 'rgba(35,198,211,0.78)' : 'rgba(255,159,67,0.78)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - iw / 2, y - ih / 2, iw, ih);
+      ctx.globalAlpha = 1;
+      drawn++;
+    }
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+
+  if (!baseScaleX) return;
+  const data = getFiltered();
+  const keys = getKeys();
+  const zx = transform.rescaleX(baseScaleX);
+  const zy = transform.rescaleY(baseScaleY);
+  const k = transform.k;
+
+  const CAT_START = 2.15;
+  const CAT_FULL = 3.15;
+  const PHOTO_START = 4.9;
+  const PHOTO_FULL = 6.2;
+
+  const catMix = clamp01((k - CAT_START) / (CAT_FULL - CAT_START));
+  const photoMix = clamp01((k - PHOTO_START) / (PHOTO_FULL - PHOTO_START));
+
+  if (catMix > 0.08) legendEl.classList.add('visible');
+  else legendEl.classList.remove('visible');
+
+  updateMiniNote(data.length);
+  positionMiniNote();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(margin.left, margin.top, W - margin.left - margin.right, H - margin.top - margin.bottom);
+  ctx.clip();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 0.5;
+  zx.ticks(10).forEach(t => {
+    const x = zx(t);
+    if (x >= margin.left && x <= W - margin.right) {
+      ctx.beginPath();
+      ctx.moveTo(x, margin.top);
+      ctx.lineTo(x, H - margin.bottom);
+      ctx.stroke();
+    }
+  });
+  zy.ticks(10).forEach(t => {
+    const y = zy(t);
+    if (y >= margin.top && y <= H - margin.bottom) {
+      ctx.beginPath();
+      ctx.moveTo(margin.left, y);
+      ctx.lineTo(W - margin.right, y);
+      ctx.stroke();
+    }
+  });
+
+  const groupAlpha = lerp(0.84, 0.22, catMix) * lerp(1, 0.2, photoMix);
+  const groupSize = Math.max(1.3, Math.min(3.2, 1.2 * Math.min(k, 3)));
+  drawGroupDots(data, keys, zx, zy, groupAlpha, groupSize);
+
+  const catAlpha = Math.max(0, 0.16 + 0.78 * catMix) * lerp(1, 0.34, photoMix);
+  const catSize = Math.max(1.3, 1.2 + 0.45 * Math.max(0, k - CAT_START));
+  drawCategoryDots(data, keys, zx, zy, catAlpha, catSize);
+
+  const photoAlpha = photoMix;
+  const photoSize = Math.max(22, Math.min(62, 18 + (k - PHOTO_START) * 6));
+  drawPhotos(data, keys, zx, zy, photoAlpha, photoSize);
+
+  ctx.restore();
+
+  const mob = isMobile();
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(margin.left, H - margin.bottom);
+  ctx.lineTo(W - margin.right, H - margin.bottom);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(margin.left, margin.top);
+  ctx.lineTo(margin.left, H - margin.bottom);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = (mob ? '9' : '11') + 'px monospace';
+  ctx.textAlign = 'center';
+  const tickCount = mob ? 5 : 8;
+  zx.ticks(tickCount).forEach(t => {
+    const x = zx(t);
+    if (x >= margin.left && x <= W - margin.right) {
+      ctx.beginPath();
+      ctx.moveTo(x, H - margin.bottom);
+      ctx.lineTo(x, H - margin.bottom + 5);
+      ctx.stroke();
+      ctx.fillText(Math.round(t), x, H - margin.bottom + (mob ? 14 : 18));
+    }
+  });
+  ctx.textAlign = 'right';
+  zy.ticks(tickCount).forEach(t => {
+    const y = zy(t);
+    if (y >= margin.top && y <= H - margin.bottom) {
+      ctx.beginPath();
+      ctx.moveTo(margin.left - 5, y);
+      ctx.lineTo(margin.left, y);
+      ctx.stroke();
+      ctx.fillText(Math.round(t), margin.left - 6, y + 4);
+    }
+  });
+
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = (mob ? '10' : '13') + 'px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(keys.xL, (margin.left + W - margin.right) / 2, H - (mob ? 4 : 12));
+  ctx.save();
+  ctx.translate(mob ? 10 : 16, (margin.top + H - margin.bottom) / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(keys.yL, 0, 0);
+  ctx.restore();
+}
+
+const zoom = d3.zoom().scaleExtent([1, 25]);
+
+function applyZoomBounds() {
+  zoom
+    .extent([[margin.left, margin.top], [W - margin.right, H - margin.bottom]])
+    .translateExtent([[margin.left, margin.top], [W - margin.right, H - margin.bottom]])
+    .on('zoom', (event) => {
+      transform = event.transform;
+      draw();
+    });
+  d3.select(canvas).call(zoom);
+}
+
+applyZoomBounds();
+
+canvas.addEventListener('dblclick', () => {
+  transform = d3.zoomIdentity;
+  d3.select(canvas).call(zoom.transform, d3.zoomIdentity);
+});
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeCat = btn.dataset.cat;
+    buildScales();
+    applyZoomBounds();
+    transform = d3.zoomIdentity;
+    d3.select(canvas).call(zoom.transform, d3.zoomIdentity);
+  });
+});
+
+document.querySelectorAll('.grp-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const g = btn.dataset.g;
+    if (activeGroups.has(g)) {
+      if (activeGroups.size > 1) {
+        activeGroups.delete(g);
+        btn.className = 'grp-btn off';
+      }
+    } else {
+      activeGroups.add(g);
+      btn.className = 'grp-btn ' + (g === 'AI' ? 'ai-on' : 'hu-on');
+    }
+    draw();
+  });
+});
+
+document.querySelectorAll('.data-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.data-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentAxes = btn.dataset.axes;
+    transform = d3.zoomIdentity;
+    d3.select(canvas).call(zoom.transform, d3.zoomIdentity);
+  });
+});
+
+async function loadData() {
+  const resp = await fetch('measurements.txt');
+  const text = await resp.text();
+  const lines = text.trim().split('\n');
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split('\t');
+    if (cols.length < 8) continue;
+    const fn = cols[0].trim();
+    if (!fn) continue;
+    const bm = parseFloat(cols[2]);
+    const sm = parseFloat(cols[4]);
+    const hm = parseFloat(cols[6]);
+    if (isNaN(bm) || isNaN(sm) || isNaN(hm)) continue;
+    allData.push({
+      filename: fn,
+      group: parseGroup(fn),
+      category: parseCat(fn),
+      brightness_median: bm,
+      saturation_median: sm,
+      hue_median: hm
+    });
+  }
+  buildScales();
+  applyZoomBounds();
+  updateMiniNote(allData.length);
+  draw();
+}
+
+window.addEventListener('resize', () => {
+  resize();
+  buildScales();
+  applyZoomBounds();
+  draw();
+});
+
+document.addEventListener('gesturestart', e => e.preventDefault(), { passive:false });
+document.addEventListener('gesturechange', e => e.preventDefault(), { passive:false });
+document.addEventListener('gestureend', e => e.preventDefault(), { passive:false });
+document.addEventListener('touchmove', e => {
+  if (e.touches && e.touches.length > 1) e.preventDefault();
+}, { passive:false });
+
+loadData();
+</script>
+</body>
+</html>

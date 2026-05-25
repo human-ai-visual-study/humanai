@@ -1,0 +1,13 @@
+"Kategori","Metrik","t_degeri","df","p_degeri","Anlamlilik","AI_Ortalama","Human_Ortalama"
+"Portre","Brightness",3.319,177.8,0.0011,"**",151.57,121.26
+"Portre","Saturation",-2.212,171.3,0.0283,"*",58.87,71.63
+"Portre","Hue",-5.948,159,0,"***",29.01,73.86
+"Manzara","Brightness",-1.75,177.7,0.0818,"ns",135.83,147.94
+"Manzara","Saturation",-2.32,167.7,0.0216,"*",69.62,84.08
+"Manzara","Hue",-2.35,175.5,0.0199,"*",81.58,99.3
+"Soyut","Brightness",3.2,166.5,0.0016,"**",166.2,133.81
+"Soyut","Saturation",-5.552,160.9,0,"***",74.03,131.06
+"Soyut","Hue",-0.214,178,0.8311,"ns",78.27,80.5
+"Kentsel","Brightness",-3.767,163.7,2e-04,"***",126.29,152.43
+"Kentsel","Saturation",-2.194,162.9,0.0297,"*",54.76,68.73
+"Kentsel","Hue",-0.205,168.3,0.8378,"ns",113.38,114.86
