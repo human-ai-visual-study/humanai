@@ -8,22 +8,26 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{
-  width:100%;height:100%;background:#000;overflow:hidden;
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;color:#fff;
+  width:100%;
+  height:100%;
+  height:100dvh;
+  background:#000;
+  overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;
+  color:#fff;
   -webkit-text-size-adjust:100%;
   overscroll-behavior:none;
   touch-action:none;
 }
-canvas{display:block;cursor:grab;touch-action:none}
+body{position:fixed;inset:0}
+canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
 canvas:active{cursor:grabbing}
-
 :root{
   --safe-top:max(10px, env(safe-area-inset-top));
   --safe-left:max(12px, env(safe-area-inset-left));
   --safe-right:max(12px, env(safe-area-inset-right));
   --safe-bottom:max(10px, env(safe-area-inset-bottom));
 }
-
 .control-panel{
   position:fixed;
   top:var(--safe-top);
@@ -35,15 +39,7 @@ canvas:active{cursor:grabbing}
   gap:8px;
   pointer-events:none;
 }
-
-.control-row{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-  pointer-events:auto;
-}
-
+.control-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;pointer-events:auto}
 .pill{
   display:flex;
   gap:4px;
@@ -52,53 +48,31 @@ canvas:active{cursor:grabbing}
   max-width:100%;
   background:rgba(255,255,255,0.06);
   border:1px solid rgba(255,255,255,0.08);
-  border-radius:12px;
+  border-radius:14px;
   padding:4px;
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
 }
-
 button{
   appearance:none;
   border:none;
   background:transparent;
-  color:rgba(255,255,255,0.55);
+  color:rgba(255,255,255,0.58);
   font-family:inherit;
   cursor:pointer;
-  border-radius:9px;
+  border-radius:10px;
   transition:all .2s ease;
   white-space:nowrap;
   touch-action:manipulation;
 }
-button:hover{color:rgba(255,255,255,0.82)}
-
-.data-btn,.mode-btn,.grp-btn{
-  font-size:12px;
-  letter-spacing:.35px;
-}
-.data-btn{padding:9px 14px}
-.mode-btn{padding:9px 14px}
+button:hover{color:rgba(255,255,255,0.85)}
+.data-btn,.mode-btn,.grp-btn{font-size:12px;letter-spacing:.35px}
+.data-btn,.mode-btn{padding:9px 14px}
 .grp-btn{padding:9px 16px}
-
-.data-btn.active,
-.mode-btn.active,
-.grp-btn.active{
-  background:rgba(255,255,255,0.12);
-  color:#fff;
-}
-
-.grp-btn.ai-on{
-  background:rgba(35,198,211,0.20);
-  color:#23c6d3;
-  box-shadow:inset 0 0 0 1px rgba(35,198,211,0.18);
-}
-.grp-btn.hu-on{
-  background:rgba(255,159,67,0.20);
-  color:#ff9f43;
-  box-shadow:inset 0 0 0 1px rgba(255,159,67,0.18);
-}
+.data-btn.active,.mode-btn.active,.grp-btn.active{background:rgba(255,255,255,0.12);color:#fff}
+.grp-btn.ai-on{background:rgba(35,198,211,0.20);color:#23c6d3;box-shadow:inset 0 0 0 1px rgba(35,198,211,0.18)}
+.grp-btn.hu-on{background:rgba(255,159,67,0.20);color:#ff9f43;box-shadow:inset 0 0 0 1px rgba(255,159,67,0.18)}
 .grp-btn.off{color:rgba(255,255,255,0.25)}
-
 #legend{
   position:fixed;
   top:calc(var(--safe-top) + 114px);
@@ -114,81 +88,42 @@ button:hover{color:rgba(255,255,255,0.82)}
   max-width:min(260px, calc(100vw - 24px));
 }
 #legend.visible{opacity:1}
-
-.legend-title{
-  font-size:14px;
-  font-weight:bold;
-  margin-bottom:6px;
-  color:rgba(255,255,255,0.92);
-}
-.legend-item{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-size:13px;
-  line-height:1.7;
-}
+.legend-title{font-size:14px;font-weight:bold;margin-bottom:6px;color:rgba(255,255,255,0.92)}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.7}
 .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .legend-label{color:rgba(255,255,255,0.76)}
-
 #mini-note{
   position:fixed;
   left:var(--safe-left);
   top:0;
-  bottom:auto;
-  color:rgba(255,255,255,0.44);
+  color:rgba(255,255,255,0.46);
   font-size:8px;
   letter-spacing:.15px;
   line-height:1;
   pointer-events:none;
   z-index:10;
 }
-
-#credit{
-  position:fixed;
-  left:var(--safe-left);
-  bottom:var(--safe-bottom);
-  height:14px;
-  min-width:120px;
-  color:transparent;
-  pointer-events:none;
-  z-index:10;
-}
-
+#credit{position:fixed;left:var(--safe-left);bottom:var(--safe-bottom);height:14px;min-width:120px;color:transparent;pointer-events:none;z-index:10}
 @media (max-width:768px){
   .control-panel{gap:7px}
   .control-row{gap:8px}
   .pill{gap:2px;padding:4px}
-  .data-btn,.mode-btn,.grp-btn{
-    font-size:11px;
-    letter-spacing:.2px;
-    padding:8px 12px;
-  }
-
-  #legend{
-    top:auto;
-    right:auto;
-    left:var(--safe-left);
-    bottom:calc(var(--safe-bottom) + 72px);
-    padding:10px 12px;
-    max-width:min(280px, calc(100vw - 24px));
-  }
-
+  .data-btn,.mode-btn,.grp-btn{font-size:11px;letter-spacing:.2px;padding:8px 12px}
+  .mode-row #buttons{width:100%}
+  .group-row{margin-top:-2px}
+  #legend{top:auto;right:auto;left:var(--safe-left);bottom:calc(var(--safe-bottom) + 72px);padding:10px 12px;max-width:min(280px, calc(100vw - 24px))}
   .legend-title{font-size:12px}
   .legend-item{font-size:11px;line-height:1.5}
   .legend-dot{width:7px;height:7px}
-
-  #mini-note{
-    font-size:7.5px;
-  }
+  #mini-note{font-size:7.5px}
 }
 </style>
 </head>
 <body>
 <canvas id="chart"></canvas>
 
-<div class="control-panel">
-  <div class="control-row">
+<div class="control-panel" id="control-panel">
+  <div class="control-row data-row">
     <div class="pill" id="data-toggle">
       <button class="data-btn active" data-axes="bs">Brightness / Saturation</button>
       <button class="data-btn" data-axes="bh">Brightness / Hue</button>
@@ -196,15 +131,19 @@ button:hover{color:rgba(255,255,255,0.82)}
     </div>
   </div>
 
-  <div class="control-row">
+  <div class="control-row mode-row">
     <div class="pill" id="buttons">
       <button class="mode-btn active" data-cat="all">Tümü</button>
       <button class="mode-btn" data-cat="portrait">Portre</button>
       <button class="mode-btn" data-cat="landscape">Manzara</button>
       <button class="mode-btn" data-cat="abstract">Soyut</button>
       <button class="mode-btn" data-cat="cityscape">Kentsel</button>
+      <button class="mode-btn" data-cat="thumbnail">Thumbnail</button>
+      <button class="mode-btn" data-cat="grid">Grid</button>
     </div>
+  </div>
 
+  <div class="control-row group-row">
     <div class="pill" id="group-toggle">
       <button class="grp-btn ai-on" data-g="AI">AI</button>
       <button class="grp-btn hu-on" data-g="Human">İnsan</button>
@@ -215,7 +154,6 @@ button:hover{color:rgba(255,255,255,0.82)}
 <div id="legend">
   <div class="legend-title">Kategori</div>
 </div>
-
 <div id="mini-note">AI · Human</div>
 <div id="credit">&nbsp;</div>
 
@@ -235,7 +173,15 @@ const catLabels = {
   cityscape: 'Kentsel'
 };
 
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d', { alpha: false });
+ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = 'low';
 const legendEl = document.getElementById('legend');
+const miniNote = document.getElementById('mini-note');
+const dataToggle = document.getElementById('data-toggle');
+const controlPanel = document.getElementById('control-panel');
+
 for (const [cat, color] of Object.entries(catColors)) {
   const item = document.createElement('div');
   item.className = 'legend-item';
@@ -252,49 +198,171 @@ legendEl.appendChild(sep);
   legendEl.appendChild(item);
 });
 
-const miniNote = document.getElementById('mini-note');
-
 let allData = [];
 let activeGroups = new Set(['AI', 'Human']);
 let activeCat = 'all';
+let thumbMode = false;
+let gridMode = false;
 let currentAxes = 'bs';
 let transform = d3.zoomIdentity;
 
-const canvas = document.getElementById('chart');
-const ctx = canvas.getContext('2d');
-
-let W, H;
-function resize() {
-  W = window.innerWidth;
-  H = window.innerHeight;
-  canvas.width = W * devicePixelRatio;
-  canvas.height = H * devicePixelRatio;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-}
-resize();
-
-const isMobile = () => W < 768;
-const getMargin = () => isMobile()
-  ? { top: 154, right: 16, bottom: 44, left: 44 }
-  : { top: 110, right: 38, bottom: 58, left: 68 };
-let margin = getMargin();
+let W = 0;
+let H = 0;
+let DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+let margin = { top: 154, right: 16, bottom: 44, left: 44 };
+let layoutMetrics = {
+  panelBottom: 0, topPad: 154, bottomPad: 44, leftPad: 44, rightPad: 16,
+  gridTop: 154, gridBottom: 34, gridLeft: 8, gridRight: 8
+};
 
 const imgCache = {};
-function loadImg(fn) {
+const sortedCache = new Map();
+let drawScheduled = false;
+let syncScheduled = false;
+let syncResetZoom = false;
+let gridCacheDirty = true;
+let gridRebuildTimer = null;
+let thumbModeActiveLoads = 0;
+let drawQueuedFromImage = false;
+
+const gridCacheCanvas = document.createElement('canvas');
+const gridCacheCtx = gridCacheCanvas.getContext('2d', { alpha: false });
+gridCacheCtx.imageSmoothingEnabled = true;
+gridCacheCtx.imageSmoothingQuality = 'low';
+
+function isMobile(){ return W < 768; }
+function getCssPixel(varName, fallback){
+  const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  const n = parseFloat(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function getViewportSize(){
+  const docEl = document.documentElement;
+  return {
+    width: Math.max(docEl.clientWidth || 0, window.innerWidth || 0, 320),
+    height: Math.max(docEl.clientHeight || 0, window.innerHeight || 0, 320)
+  };
+}
+function resizeCanvas(){
+  const vp = getViewportSize();
+  W = Math.max(320, vp.width);
+  H = Math.max(320, vp.height);
+  DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+  canvas.width = Math.round(W * DPR);
+  canvas.height = Math.round(H * DPR);
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'low';
+}
+function updateLayoutMetrics(){
+  const safeBottom = getCssPixel('--safe-bottom', 10);
+  const panelRect = controlPanel.getBoundingClientRect();
+  const panelBottom = Math.ceil(panelRect.bottom);
+  layoutMetrics = {
+    panelBottom,
+    topPad: Math.max(panelBottom + (isMobile() ? 14 : 18), isMobile() ? 154 : 118),
+    bottomPad: Math.max(safeBottom + (isMobile() ? 42 : 56), isMobile() ? 42 : 56),
+    leftPad: isMobile() ? 44 : 68,
+    rightPad: isMobile() ? 16 : 38,
+    gridTop: panelBottom + (isMobile() ? 12 : 18),
+    gridBottom: Math.max(safeBottom + (isMobile() ? 30 : 28), isMobile() ? 30 : 28),
+    gridLeft: isMobile() ? 8 : 52,
+    gridRight: isMobile() ? 8 : 16
+  };
+}
+
+let baseScaleX;
+let baseScaleY;
+function buildScales(){
+  updateLayoutMetrics();
+  margin = {
+    top: layoutMetrics.topPad,
+    right: layoutMetrics.rightPad,
+    bottom: layoutMetrics.bottomPad,
+    left: layoutMetrics.leftPad
+  };
+  const pad = activeCat === 'all' ? 30 : 10;
+  baseScaleX = d3.scaleLinear().domain([0 - pad, 255 + pad]).range([margin.left, W - margin.right]);
+  baseScaleY = d3.scaleLinear().domain([0 - pad, 255 + pad]).range([H - margin.bottom, margin.top]);
+  markGridCacheDirty();
+}
+function scheduleDraw(){
+  if (drawScheduled) return;
+  drawScheduled = true;
+  requestAnimationFrame(() => { drawScheduled = false; draw(); });
+}
+function scheduleSync(resetZoom = false){
+  syncResetZoom = syncResetZoom || resetZoom;
+  if (syncScheduled) return;
+  syncScheduled = true;
+  requestAnimationFrame(() => {
+    syncScheduled = false;
+    resizeCanvas();
+    buildScales();
+    applyZoomBounds();
+    if (syncResetZoom) {
+      transform = d3.zoomIdentity;
+      d3.select(canvas).call(zoom.transform, d3.zoomIdentity);
+    } else {
+      draw();
+    }
+    syncResetZoom = false;
+  });
+}
+function scheduleResizeDebounced(resetZoom = false){
+  clearTimeout(scheduleResizeDebounced.t);
+  scheduleResizeDebounced.t = setTimeout(() => scheduleSync(resetZoom), 80);
+}
+
+function markGridCacheDirty(){
+  gridCacheDirty = true;
+  if (gridMode) scheduleDraw();
+}
+function scheduleGridCacheRebuild(){
+  clearTimeout(gridRebuildTimer);
+  gridRebuildTimer = setTimeout(() => {
+    if (gridMode) {
+      gridCacheDirty = true;
+      scheduleDraw();
+    }
+  }, 320);
+}
+
+function loadImg(fn){
   if (imgCache[fn]) return imgCache[fn];
   const img = new Image();
+  img.decoding = 'async';
   img.src = 'images/' + fn;
-  img.onload = () => draw();
+  img.onload = () => {
+    if (gridMode) scheduleGridCacheRebuild();
+    if (thumbMode) {
+      thumbModeActiveLoads++;
+      if (!drawQueuedFromImage) {
+        drawQueuedFromImage = true;
+        requestAnimationFrame(() => {
+          drawQueuedFromImage = false;
+          thumbModeActiveLoads = 0;
+          scheduleDraw();
+        });
+      }
+    } else {
+      scheduleDraw();
+    }
+  };
+  img.onerror = () => {};
   imgCache[fn] = img;
   return img;
 }
-
-function parseGroup(fn) {
-  return fn.startsWith('ai_') ? 'AI' : fn.startsWith('human_') ? 'Human' : '?';
+function warmImageCache(){
+  const data = getFiltered();
+  const budget = gridMode ? (isMobile() ? 96 : 180) : (thumbMode ? (isMobile() ? 160 : 260) : (isMobile() ? 90 : 160));
+  for (let i = 0; i < Math.min(data.length, budget); i++) loadImg(data[i].filename);
 }
-function parseCat(fn) {
+
+function parseGroup(fn){ return fn.startsWith('ai_') ? 'AI' : fn.startsWith('human_') ? 'Human' : '?'; }
+function parseCat(fn){
   const f = fn.toLowerCase();
   if (f.includes('portrait') || f.includes('portre')) return 'portrait';
   if (f.includes('landscape')) return 'landscape';
@@ -302,45 +370,50 @@ function parseCat(fn) {
   if (f.includes('cityscape')) return 'cityscape';
   return 'unknown';
 }
-
-function getKeys() {
+function getKeys(){
   if (currentAxes === 'bs') return { x: 'brightness_median', y: 'saturation_median', xL: 'Brightness', yL: 'Saturation' };
   if (currentAxes === 'bh') return { x: 'brightness_median', y: 'hue_median', xL: 'Brightness', yL: 'Hue' };
   return { x: 'saturation_median', y: 'hue_median', xL: 'Saturation', yL: 'Hue' };
 }
-
-let baseScaleX, baseScaleY;
-function buildScales() {
-  margin = getMargin();
-  const pad = activeCat === 'all' ? 30 : 10;
-  baseScaleX = d3.scaleLinear().domain([0 - pad, 255 + pad]).range([margin.left, W - margin.right]);
-  baseScaleY = d3.scaleLinear().domain([0 - pad, 255 + pad]).range([H - margin.bottom, margin.top]);
-}
-
-function getFiltered() {
+function getFiltered(){
   return allData.filter(d => activeGroups.has(d.group) && (activeCat === 'all' || d.category === activeCat));
 }
-
-function lerp(a, b, t) {
-  return a + (b - a) * t;
+function getSortedGroupData(group){
+  const cacheKey = `${currentAxes}|${activeCat}|${group}`;
+  if (sortedCache.has(cacheKey)) return sortedCache.get(cacheKey);
+  const base = allData.filter(d => d.group === group && (activeCat === 'all' || d.category === activeCat));
+  const sortKeys = getGridSortKeys();
+  base.sort((a, b) => {
+    const pd = a[sortKeys.primary] - b[sortKeys.primary];
+    if (Math.abs(pd) > 0.0001) return pd;
+    return a[sortKeys.secondary] - b[sortKeys.secondary];
+  });
+  sortedCache.set(cacheKey, base);
+  return base;
 }
+function clearSortedCache(){ sortedCache.clear(); }
 
-function clamp01(v) {
-  return Math.max(0, Math.min(1, v));
-}
-
-function updateMiniNote(dataLength) {
-  miniNote.textContent = `${dataLength} görsel`;
-}
-
-function positionMiniNote() {
-  const y = H - (isMobile() ? 6 : 12);
+function lerp(a,b,t){ return a + (b - a) * t; }
+function clamp01(v){ return Math.max(0, Math.min(1, v)); }
+function updateMiniNote(dataLength){ miniNote.textContent = `${dataLength} görsel`; }
+function positionMiniNote(){
+  const y = H - 8;
   const x = margin.left + (isMobile() ? 4 : 8);
   miniNote.style.top = `${y}px`;
   miniNote.style.left = `${x}px`;
 }
-
-function drawGroupDots(data, keys, zx, zy, alpha, size) {
+function drawPlaceholderSquare(targetCtx, x, y, size, borderColor, alpha = 0.22){
+  const half = size / 2;
+  targetCtx.save();
+  targetCtx.globalAlpha = alpha;
+  targetCtx.fillStyle = 'rgba(255,255,255,0.04)';
+  targetCtx.fillRect(x - half, y - half, size, size);
+  targetCtx.strokeStyle = borderColor;
+  targetCtx.lineWidth = Math.max(0.6, size * 0.03);
+  targetCtx.strokeRect(x - half, y - half, size, size);
+  targetCtx.restore();
+}
+function drawGroupDots(data, keys, zx, zy, alpha, size){
   if (alpha <= 0.01) return;
   ctx.globalAlpha = alpha;
   for (let i = 0; i < data.length; i++) {
@@ -355,8 +428,7 @@ function drawGroupDots(data, keys, zx, zy, alpha, size) {
   }
   ctx.globalAlpha = 1;
 }
-
-function drawCategoryDots(data, keys, zx, zy, alpha, size) {
+function drawCategoryDots(data, keys, zx, zy, alpha, size){
   if (alpha <= 0.01) return;
   ctx.globalAlpha = alpha;
   for (let i = 0; i < data.length; i++) {
@@ -371,8 +443,7 @@ function drawCategoryDots(data, keys, zx, zy, alpha, size) {
   }
   ctx.globalAlpha = 1;
 }
-
-function drawPhotos(data, keys, zx, zy, alpha, size) {
+function drawPhotos(data, keys, zx, zy, alpha, size){
   if (alpha <= 0.01) return;
   let drawn = 0;
   for (let i = 0; i < data.length; i++) {
@@ -380,7 +451,6 @@ function drawPhotos(data, keys, zx, zy, alpha, size) {
     const x = zx(d[keys.x]);
     const y = zy(d[keys.y]);
     if (x < margin.left - size || x > W - margin.right + size || y < margin.top - size || y > H - margin.bottom + size) continue;
-
     const img = loadImg(d.filename);
     if (img.complete && img.naturalWidth > 0 && drawn < 150) {
       const aspect = img.naturalHeight / img.naturalWidth;
@@ -396,73 +466,156 @@ function drawPhotos(data, keys, zx, zy, alpha, size) {
     }
   }
 }
+function drawThumbSquare(targetCtx, img, x, y, size, borderColor, alpha){
+  const sw = img.naturalWidth;
+  const sh = img.naturalHeight;
+  const s = Math.min(sw, sh);
+  const sx = (sw - s) / 2;
+  const sy = (sh - s) / 2;
+  const half = size / 2;
+  targetCtx.save();
+  targetCtx.globalAlpha = alpha;
+  targetCtx.drawImage(img, sx, sy, s, s, x - half, y - half, size, size);
+  targetCtx.strokeStyle = borderColor;
+  targetCtx.lineWidth = Math.max(0.7, size * 0.04);
+  targetCtx.strokeRect(x - half, y - half, size, size);
+  targetCtx.restore();
+}
 
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, W, H);
+function drawThumbnailMode(data, keys, zx, zy, k){
+  const mob = isMobile();
+  const baseSize = mob ? 10 : 11;
+  const growth = mob ? 2.8 : 4.0;
+  const photoSize = Math.max(baseSize, Math.min(mob ? 40 : 56, baseSize + (k - 1) * growth));
+  const alpha = Math.min(1, 0.78 + Math.max(0, k - 1) * 0.08);
 
-  if (!baseScaleX) return;
+  let step;
+  let drawLimit;
+  if (mob) {
+    if (k < 1.15) { step = 4; drawLimit = 180; }
+    else if (k < 1.45) { step = 3; drawLimit = 240; }
+    else if (k < 2.0) { step = 2; drawLimit = 320; }
+    else if (k < 3.0) { step = 2; drawLimit = 420; }
+    else { step = 1; drawLimit = 520; }
+  } else {
+    if (k < 1.2) { step = 3; drawLimit = 280; }
+    else if (k < 2.0) { step = 2; drawLimit = 420; }
+    else { step = 1; drawLimit = 620; }
+  }
+
+  let drawn = 0;
+  for (let i = 0; i < data.length; i += step) {
+    if (drawn >= drawLimit) break;
+    const d = data[i];
+    const x = zx(d[keys.x]);
+    const y = zy(d[keys.y]);
+    if (x < margin.left - photoSize || x > W - margin.right + photoSize || y < margin.top - photoSize || y > H - margin.bottom + photoSize) continue;
+    const img = loadImg(d.filename);
+    const borderColor = d.group === 'AI' ? 'rgba(35,198,211,0.70)' : 'rgba(255,159,67,0.70)';
+    if (img.complete && img.naturalWidth) {
+      drawThumbSquare(ctx, img, x, y, photoSize, borderColor, alpha);
+    } else {
+      drawPlaceholderSquare(ctx, x, y, photoSize, borderColor, 0.18);
+    }
+    drawn++;
+  }
+}
+function getGridSortKeys(){
+  if (currentAxes === 'bs') return { primary: 'brightness_median', secondary: 'saturation_median', label: 'Brightness / Saturation' };
+  if (currentAxes === 'bh') return { primary: 'brightness_median', secondary: 'hue_median', label: 'Brightness / Hue' };
+  return { primary: 'saturation_median', secondary: 'hue_median', label: 'Saturation / Hue' };
+}
+function calcGrid(count, areaW, areaH){
+  if (count === 0) return { cols: 0, rows: 0, size: 0 };
+  let bestSize = 0, bestCols = 1, bestRows = 1;
+  for (let cols = 1; cols <= count; cols++) {
+    const rows = Math.ceil(count / cols);
+    const sizeByW = areaW / cols;
+    const sizeByH = areaH / rows;
+    const size = Math.min(sizeByW, sizeByH);
+    if (size >= bestSize) {
+      bestSize = size;
+      bestCols = cols;
+      bestRows = rows;
+    }
+  }
+  return { cols: bestCols, rows: bestRows, size: Math.floor(bestSize * 100) / 100 };
+}
+function drawGridBlock(targetCtx, sorted, offsetX, offsetY, areaW, areaH){
+  const g = calcGrid(sorted.length, areaW, areaH);
+  if (g.cols === 0) return;
+  const totalGridW = g.cols * g.size;
+  const totalGridH = g.rows * g.size;
+  const startX = offsetX + (areaW - totalGridW) / 2;
+  const startY = offsetY + (areaH - totalGridH) / 2;
+  const drawSize = g.size * 0.96;
+  for (let i = 0; i < sorted.length; i++) {
+    const d = sorted[i];
+    const col = i % g.cols;
+    const row = Math.floor(i / g.cols);
+    const cx = startX + col * g.size + g.size / 2;
+    const cy = startY + row * g.size + g.size / 2;
+    const img = loadImg(d.filename);
+    const borderColor = d.group === 'AI' ? 'rgba(35,198,211,0.55)' : 'rgba(255,159,67,0.55)';
+    if (img.complete && img.naturalWidth) drawThumbSquare(targetCtx, img, cx, cy, drawSize, borderColor, 0.92);
+    else drawPlaceholderSquare(targetCtx, cx, cy, drawSize, borderColor, 0.15);
+  }
+}
+function rebuildGridCache(){
+  const mob = isMobile();
+  const gTop = layoutMetrics.gridTop;
+  const gRight = layoutMetrics.gridRight;
+  const gBottom = layoutMetrics.gridBottom;
+  const gLeft = layoutMetrics.gridLeft;
+  const plotW = W - gLeft - gRight;
+  const plotH = H - gTop - gBottom;
+  if (plotH <= 60 || plotW <= 60) return;
+
+  gridCacheCanvas.width = Math.round(W * DPR);
+  gridCacheCanvas.height = Math.round(H * DPR);
+  gridCacheCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  gridCacheCtx.imageSmoothingEnabled = true;
+  gridCacheCtx.imageSmoothingQuality = 'low';
+  gridCacheCtx.clearRect(0, 0, W, H);
+  gridCacheCtx.fillStyle = '#000';
+  gridCacheCtx.fillRect(0, 0, W, H);
+
+  const bothActive = activeGroups.has('AI') && activeGroups.has('Human');
+  const gap = bothActive ? (mob ? 10 : 12) : 0;
+  const availH = bothActive ? (plotH - gap) / 2 : plotH;
+
+  const aiData = activeGroups.has('AI') ? getSortedGroupData('AI') : [];
+  const huData = activeGroups.has('Human') ? getSortedGroupData('Human') : [];
+
+  if (bothActive) {
+    drawGridBlock(gridCacheCtx, aiData, gLeft, gTop, plotW, availH);
+    drawGridBlock(gridCacheCtx, huData, gLeft, gTop + availH + gap, plotW, availH);
+    gridCacheCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+    gridCacheCtx.lineWidth = 0.5;
+    gridCacheCtx.beginPath();
+    gridCacheCtx.moveTo(gLeft, gTop + availH + gap / 2);
+    gridCacheCtx.lineTo(W - gRight, gTop + availH + gap / 2);
+    gridCacheCtx.stroke();
+  } else {
+    const singleData = activeGroups.has('AI') ? aiData : huData;
+    drawGridBlock(gridCacheCtx, singleData, gLeft, gTop, plotW, plotH);
+  }
+
+  const sortLabel = getGridSortKeys().label;
+  gridCacheCtx.fillStyle = 'rgba(255,255,255,0.32)';
+  gridCacheCtx.font = (mob ? '9' : '11') + 'px monospace';
+  gridCacheCtx.textAlign = 'center';
+  gridCacheCtx.fillText(sortLabel + ' →', W / 2, H - gBottom + (mob ? 12 : 18));
+  gridCacheDirty = false;
+}
+function drawGridMode(){
   const data = getFiltered();
-  const keys = getKeys();
-  const zx = transform.rescaleX(baseScaleX);
-  const zy = transform.rescaleY(baseScaleY);
-  const k = transform.k;
+  if (data.length === 0) return;
+  if (gridCacheDirty) rebuildGridCache();
+  ctx.drawImage(gridCacheCanvas, 0, 0, W, H);
+}
 
-  const CAT_START = 2.15;
-  const CAT_FULL = 3.15;
-  const PHOTO_START = 4.9;
-  const PHOTO_FULL = 6.2;
-
-  const catMix = clamp01((k - CAT_START) / (CAT_FULL - CAT_START));
-  const photoMix = clamp01((k - PHOTO_START) / (PHOTO_FULL - PHOTO_START));
-
-  if (catMix > 0.08) legendEl.classList.add('visible');
-  else legendEl.classList.remove('visible');
-
-  updateMiniNote(data.length);
-  positionMiniNote();
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(margin.left, margin.top, W - margin.left - margin.right, H - margin.top - margin.bottom);
-  ctx.clip();
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-  ctx.lineWidth = 0.5;
-  zx.ticks(10).forEach(t => {
-    const x = zx(t);
-    if (x >= margin.left && x <= W - margin.right) {
-      ctx.beginPath();
-      ctx.moveTo(x, margin.top);
-      ctx.lineTo(x, H - margin.bottom);
-      ctx.stroke();
-    }
-  });
-  zy.ticks(10).forEach(t => {
-    const y = zy(t);
-    if (y >= margin.top && y <= H - margin.bottom) {
-      ctx.beginPath();
-      ctx.moveTo(margin.left, y);
-      ctx.lineTo(W - margin.right, y);
-      ctx.stroke();
-    }
-  });
-
-  const groupAlpha = lerp(0.84, 0.22, catMix) * lerp(1, 0.2, photoMix);
-  const groupSize = Math.max(1.3, Math.min(3.2, 1.2 * Math.min(k, 3)));
-  drawGroupDots(data, keys, zx, zy, groupAlpha, groupSize);
-
-  const catAlpha = Math.max(0, 0.16 + 0.78 * catMix) * lerp(1, 0.34, photoMix);
-  const catSize = Math.max(1.3, 1.2 + 0.45 * Math.max(0, k - CAT_START));
-  drawCategoryDots(data, keys, zx, zy, catAlpha, catSize);
-
-  const photoAlpha = photoMix;
-  const photoSize = Math.max(22, Math.min(62, 18 + (k - PHOTO_START) * 6));
-  drawPhotos(data, keys, zx, zy, photoAlpha, photoSize);
-
-  ctx.restore();
-
+function drawAxes(zx, zy, keys){
   const mob = isMobile();
   ctx.strokeStyle = 'rgba(255,255,255,0.25)';
   ctx.lineWidth = 0.5;
@@ -474,7 +627,6 @@ function draw() {
   ctx.moveTo(margin.left, margin.top);
   ctx.lineTo(margin.left, H - margin.bottom);
   ctx.stroke();
-
   ctx.fillStyle = 'rgba(255,255,255,0.6)';
   ctx.font = (mob ? '9' : '11') + 'px monospace';
   ctx.textAlign = 'center';
@@ -500,7 +652,6 @@ function draw() {
       ctx.fillText(Math.round(t), margin.left - 6, y + 4);
     }
   });
-
   ctx.fillStyle = 'rgba(255,255,255,0.7)';
   ctx.font = (mob ? '10' : '13') + 'px monospace';
   ctx.textAlign = 'center';
@@ -512,33 +663,124 @@ function draw() {
   ctx.restore();
 }
 
-const zoom = d3.zoom().scaleExtent([1, 25]);
+function draw(){
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  if (!baseScaleX || !baseScaleY) return;
+  const data = getFiltered();
+  const keys = getKeys();
+  const zx = transform.rescaleX(baseScaleX);
+  const zy = transform.rescaleY(baseScaleY);
+  const k = transform.k;
 
-function applyZoomBounds() {
+  const CAT_START = 2.15;
+  const CAT_FULL = 3.15;
+  const PHOTO_START = 4.9;
+  const PHOTO_FULL = 6.2;
+  const catMix = clamp01((k - CAT_START) / (CAT_FULL - CAT_START));
+  const photoMix = clamp01((k - PHOTO_START) / (PHOTO_FULL - PHOTO_START));
+
+  if (!thumbMode && !gridMode) {
+    if (catMix > 0.08) legendEl.classList.add('visible');
+    else legendEl.classList.remove('visible');
+  }
+
+  updateMiniNote(data.length);
+  positionMiniNote();
+
+  if (gridMode) {
+    legendEl.classList.remove('visible');
+    drawGridMode();
+    return;
+  }
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(margin.left, margin.top, W - margin.left - margin.right, H - margin.top - margin.bottom);
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 0.5;
+  zx.ticks(10).forEach(t => {
+    const x = zx(t);
+    if (x >= margin.left && x <= W - margin.right) {
+      ctx.beginPath();
+      ctx.moveTo(x, margin.top);
+      ctx.lineTo(x, H - margin.bottom);
+      ctx.stroke();
+    }
+  });
+  zy.ticks(10).forEach(t => {
+    const y = zy(t);
+    if (y >= margin.top && y <= H - margin.bottom) {
+      ctx.beginPath();
+      ctx.moveTo(margin.left, y);
+      ctx.lineTo(W - margin.right, y);
+      ctx.stroke();
+    }
+  });
+
+  if (thumbMode) {
+    drawThumbnailMode(data, keys, zx, zy, k);
+  } else {
+    const groupAlpha = lerp(0.84, 0.22, catMix) * lerp(1, 0.2, photoMix);
+    const groupSize = Math.max(1.3, Math.min(3.2, 1.2 * Math.min(k, 3)));
+    drawGroupDots(data, keys, zx, zy, groupAlpha, groupSize);
+    const catAlpha = Math.max(0, 0.16 + 0.78 * catMix) * lerp(1, 0.34, photoMix);
+    const catSize = Math.max(1.3, 1.2 + 0.45 * Math.max(0, k - CAT_START));
+    drawCategoryDots(data, keys, zx, zy, catAlpha, catSize);
+    const photoAlpha = photoMix;
+    const photoSize = Math.max(22, Math.min(62, 18 + (k - PHOTO_START) * 6));
+    drawPhotos(data, keys, zx, zy, photoAlpha, photoSize);
+  }
+  ctx.restore();
+  drawAxes(zx, zy, keys);
+}
+
+const zoom = d3.zoom().scaleExtent([1, 25]).filter(() => !gridMode);
+function applyZoomBounds(){
   zoom
     .extent([[margin.left, margin.top], [W - margin.right, H - margin.bottom]])
     .translateExtent([[margin.left, margin.top], [W - margin.right, H - margin.bottom]])
-    .on('zoom', (event) => {
-      transform = event.transform;
-      draw();
-    });
+    .on('zoom', (event) => { transform = event.transform; draw(); });
   d3.select(canvas).call(zoom);
+  canvas.style.cursor = gridMode ? 'default' : 'grab';
 }
-
-applyZoomBounds();
-
 canvas.addEventListener('dblclick', () => {
   transform = d3.zoomIdentity;
   d3.select(canvas).call(zoom.transform, d3.zoomIdentity);
 });
+function updateUIForMode(){
+  if (gridMode || thumbMode) legendEl.classList.remove('visible');
+  dataToggle.style.display = '';
+}
 
 document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    activeCat = btn.dataset.cat;
+
+    const cat = btn.dataset.cat;
+    thumbMode = false;
+    gridMode = false;
+
+    if (cat === 'thumbnail') {
+      thumbMode = true;
+      activeCat = 'all';
+    } else if (cat === 'grid') {
+      gridMode = true;
+      activeCat = 'all';
+    } else {
+      activeCat = cat;
+    }
+
+    clearSortedCache();
+    updateUIForMode();
     buildScales();
     applyZoomBounds();
+    markGridCacheDirty();
+    warmImageCache();
+
     transform = d3.zoomIdentity;
     d3.select(canvas).call(zoom.transform, d3.zoomIdentity);
   });
@@ -556,6 +798,9 @@ document.querySelectorAll('.grp-btn').forEach(btn => {
       activeGroups.add(g);
       btn.className = 'grp-btn ' + (g === 'AI' ? 'ai-on' : 'hu-on');
     }
+    clearSortedCache();
+    warmImageCache();
+    markGridCacheDirty();
     draw();
   });
 });
@@ -566,15 +811,23 @@ document.querySelectorAll('.data-btn').forEach(btn => {
     btn.classList.add('active');
     currentAxes = btn.dataset.axes;
     transform = d3.zoomIdentity;
-    d3.select(canvas).call(zoom.transform, d3.zoomIdentity);
+    clearSortedCache();
+    markGridCacheDirty();
+    if (gridMode) {
+      buildScales();
+      applyZoomBounds();
+      warmImageCache();
+      draw();
+    } else {
+      d3.select(canvas).call(zoom.transform, d3.zoomIdentity);
+    }
   });
 });
 
-async function loadData() {
+async function loadData(){
   const resp = await fetch('measurements.txt');
   const text = await resp.text();
   const lines = text.trim().split('\n');
-
   for (let i = 1; i < lines.length; i++) {
     const cols = lines[i].split('\t');
     if (cols.length < 8) continue;
@@ -593,26 +846,20 @@ async function loadData() {
       hue_median: hm
     });
   }
-  buildScales();
-  applyZoomBounds();
+  scheduleSync(false);
+  warmImageCache();
   updateMiniNote(allData.length);
   draw();
 }
 
-window.addEventListener('resize', () => {
-  resize();
-  buildScales();
-  applyZoomBounds();
-  draw();
-});
-
+window.addEventListener('resize', () => scheduleResizeDebounced(false));
+window.addEventListener('orientationchange', () => scheduleResizeDebounced(true));
 document.addEventListener('gesturestart', e => e.preventDefault(), { passive:false });
 document.addEventListener('gesturechange', e => e.preventDefault(), { passive:false });
 document.addEventListener('gestureend', e => e.preventDefault(), { passive:false });
 document.addEventListener('touchmove', e => {
   if (e.touches && e.touches.length > 1) e.preventDefault();
 }, { passive:false });
-
 loadData();
 </script>
 </body>
