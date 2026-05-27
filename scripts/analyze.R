@@ -165,6 +165,9 @@ manova_model <- manova(
 )
 
 manova_summary <- as.data.frame(summary(manova_model, test = "Pillai")$stats)
+manova_summary$Pillai <- round(manova_summary$Pillai, 6)
+manova_summary$`approx F` <- round(manova_summary$`approx F`, 4)
+manova_summary$`Pr(>F)` <- formatC(manova_summary$`Pr(>F)`, format = "e", digits = 3)
 write.csv(manova_summary, "results/06_manova.csv")
 
 cat("Analysis outputs written to results/02-06 files.\n")
