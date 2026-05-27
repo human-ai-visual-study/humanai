@@ -1,0 +1,17 @@
+Duyarlilik analizi
+Veri dosyasi: results/01_tum_veri.csv
+Cikti klasoru: results
+
+Test: iki bagimsiz grup karsilastirmasi
+Kuyruk: iki yonlu
+Hedef guc: .80
+
+ category n_ai n_human       alpha_label  alpha target_power detectable_d
+  Kentsel   90      90        alpha_0.05 0.0500          0.8    0.4199065
+  Kentsel   90      90 bonferroni_0.0042 0.0042          0.8    0.5586552
+  Manzara   90      90        alpha_0.05 0.0500          0.8    0.4199065
+  Manzara   90      90 bonferroni_0.0042 0.0042          0.8    0.5586552
+   Portre   90      90        alpha_0.05 0.0500          0.8    0.4199065
+   Portre   90      90 bonferroni_0.0042 0.0042          0.8    0.5586552
+    Soyut   90      90        alpha_0.05 0.0500          0.8    0.4199065
+    Soyut   90      90 bonferroni_0.0042 0.0042          0.8    0.5586552
